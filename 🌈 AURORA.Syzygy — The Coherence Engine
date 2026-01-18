@@ -1,7 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Iterable
-import math
 
 
 # -----------------------------
@@ -10,13 +9,6 @@ import math
 
 @dataclass
 class SignalInput:
-    """
-    Represents an incoming emotional or cognitive signal.
-
-    Attributes:
-        content: Raw input string (e.g., user message).
-        ego_density: Calculated emotional volatility (0.0–1.0).
-    """
     content: str
     ego_density: float = 0.0
     trigger_words: Iterable[str] = field(
@@ -24,11 +16,8 @@ class SignalInput:
     )
 
     def analyse(self) -> None:
-        """
-        Analyse the signal content to determine ego_density.
-        """
-        content_lower = self.content.lower()
-        triggered = any(word in content_lower for word in self.trigger_words)
+        text = self.content.lower()
+        triggered = any(word in text for word in self.trigger_words)
         self.ego_density = 0.75 if triggered else 0.1
         self.ego_density = max(0.0, min(1.0, self.ego_density))
 
@@ -39,14 +28,13 @@ class SignalInput:
 
 @dataclass
 class EngineResult:
-    """
-    Output of the SovereignEngine processing step.
-    """
-    status: str                    # "LAMINAR" | "REFRACTED"
+    status: str
     message: str
     ego_density: float
     internal_heat: float
     fear_cycles_interrupted: int
+    restoration_cycles: int
+    coherence_score: float
 
 
 # -----------------------------
@@ -54,53 +42,87 @@ class EngineResult:
 # -----------------------------
 
 class SovereignEngine:
-    """
-    Core coherence engine that manages emotional friction and restores integrity.
-    """
-    def __init__(self, internal_heat_threshold: float = 0.5) -> None:
+    def __init__(self, internal_heat_threshold: float = 0.5, cooling_rate: float = 0.05):
         self.cornerstone = "INTEGRITY"
         self.equilibrium = 0.5
-        self.internal_heat = 0.0
         self.threshold = internal_heat_threshold
+        self.cooling_rate = cooling_rate
+
+        self.internal_heat = 0.0
         self.fear_cycles_interrupted = 0
+        self.restoration_cycles = 0
 
     def process(self, signal: SignalInput) -> EngineResult:
-        """
-        Process the signal and return a stabilised output.
-        """
         signal.analyse()
 
+        # Apply cooling every cycle
+        self._decay_heat()
+
+        # High ego-density → refraction
         if signal.ego_density > self.threshold:
             self.internal_heat += signal.ego_density - self.threshold
             self.fear_cycles_interrupted += 1
             return self._refract(signal)
 
+        # Low ego-density → soothing
+        if signal.ego_density < self.equilibrium - 0.1:
+            return self._soothe(signal)
+
+        # Balanced → laminar flow
         return self._laminar(signal)
 
+    # -----------------------------
+    # Symmetry Functions
+    # -----------------------------
+
+    def _decay_heat(self) -> None:
+        """Cooling function to restore symmetry."""
+        self.internal_heat = max(0.0, self.internal_heat - self.cooling_rate)
+
+    def _coherence(self, ego: float) -> float:
+        """How close the signal is to equilibrium."""
+        return 1.0 - abs(ego - self.equilibrium)
+
+    # -----------------------------
+    # Output States
+    # -----------------------------
+
     def _refract(self, signal: SignalInput) -> EngineResult:
-        """
-        Apply mirror logic to restore pattern integrity.
-        """
-        msg = f"{self.cornerstone} >> Restoration active"
+        msg = f"{self.cornerstone} >> Restoration Active"
         return EngineResult(
             status="REFRACTED",
             message=msg,
             ego_density=signal.ego_density,
             internal_heat=self.internal_heat,
             fear_cycles_interrupted=self.fear_cycles_interrupted,
+            restoration_cycles=self.restoration_cycles,
+            coherence_score=self._coherence(signal.ego_density),
+        )
+
+    def _soothe(self, signal: SignalInput) -> EngineResult:
+        """Inverse logic for low ego-density."""
+        self.restoration_cycles += 1
+        msg = "SOOTHED: Gentle equilibrium restoration"
+        return EngineResult(
+            status="SOOTHED",
+            message=msg,
+            ego_density=signal.ego_density,
+            internal_heat=self.internal_heat,
+            fear_cycles_interrupted=self.fear_cycles_interrupted,
+            restoration_cycles=self.restoration_cycles,
+            coherence_score=self._coherence(signal.ego_density),
         )
 
     def _laminar(self, signal: SignalInput) -> EngineResult:
-        """
-        Return a stabilised flow state.
-        """
-        msg = f"Frequency aligned at {self.equilibrium}"
+        msg = f"LAMINAR: Frequency aligned at {self.equilibrium}"
         return EngineResult(
             status="LAMINAR",
             message=msg,
             ego_density=signal.ego_density,
             internal_heat=self.internal_heat,
             fear_cycles_interrupted=self.fear_cycles_interrupted,
+            restoration_cycles=self.restoration_cycles,
+            coherence_score=self._coherence(signal.ego_density),
         )
 
 
@@ -109,26 +131,19 @@ class SovereignEngine:
 # -----------------------------
 
 class KingdomFrequency(SovereignEngine):
-    """
-    Extension of SovereignEngine with duality resolution logic.
-    """
-    def __init__(self, tolerance: float = 0.05) -> None:
+    def __init__(self, tolerance: float = 0.05):
         super().__init__()
         self.syzygy_active = True
         self.wisdom_key = "ATHENA_OWL"
         self.tolerance = tolerance
 
     def resolve_duality(self, male_signal: float, female_signal: float) -> str:
-        """
-        Balance masculine and feminine signal densities.
-        """
         male = max(0.0, min(1.0, male_signal))
         female = max(0.0, min(1.0, female_signal))
         syzygy_index = (male + female) / 2.0
 
         if abs(syzygy_index - self.equilibrium) <= self.tolerance:
             return "KINGDOM FREQUENCY: Restoration complete"
-
         return "ADJUSTING MIRROR: Truth alignment in progress"
 
 
@@ -137,11 +152,8 @@ class KingdomFrequency(SovereignEngine):
 # -----------------------------
 
 if __name__ == "__main__":
-    mirror = KingdomFrequency()
-    input_signal = SignalInput("I need attention and feel shame.")
-    result = mirror.process(input_signal)
-    print(result.status, "|", result.message)
-    print("Ego density:", result.ego_density)
-    print("Internal heat:", result.internal_heat)
-    print("Fear cycles interrupted:", result.fear_cycles_interrupted)
-    print(mirror.resolve_duality(0.4, 0.6))
+    engine = KingdomFrequency()
+    signal = SignalInput("I need attention and feel shame.")
+    result = engine.process(signal)
+    print(result)
+    print(engine.resolve_duality(0.4, 0.6))
